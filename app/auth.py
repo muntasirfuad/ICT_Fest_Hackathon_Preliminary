@@ -22,7 +22,7 @@ from .models import User
 # Access tokens presented to /auth/logout are recorded here so they can no
 # longer be used.
 _revoked_tokens: set[str] = set()
-
+_revoked_refresh_tokens: set[str] = set()
 _PBKDF2_ROUNDS = 100_000
 
 
@@ -85,6 +85,8 @@ def decode_token(token: str) -> dict:
 def revoke_access_token(payload: dict) -> None:
     _revoked_tokens.add(payload["jti"])
 
+def revoke_refresh_token(payload: dict) -> None:
+    _revoked_refresh_tokens.add(payload["jti"])
 
 def get_token_payload(request: Request) -> dict:
     header = request.headers.get("Authorization")
