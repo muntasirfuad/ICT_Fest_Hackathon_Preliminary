@@ -22,15 +22,18 @@ def usage_report(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    cached = cache.get_report(admin.org_id, frm, to)
-    if cached is not None:
-        return cached
-
     try:
         from_date = datetime.strptime(frm, "%Y-%m-%d").date()
         to_date = datetime.strptime(to, "%Y-%m-%d").date()
     except ValueError:
         raise AppError(400, "INVALID_BOOKING_WINDOW", "Invalid date range")
+
+    if from_date > to_date:
+        raise AppError(400, "INVALID_BOOKING_WINDOW", "'from' must not be after 'to'")
+
+    cached = cache.get_report(admin.org_id, frm, to)
+    if cached is not None:
+        return cached
 
     range_start = datetime.combine(from_date, time.min)
     range_end = datetime.combine(to_date + timedelta(days=1), time.min)
@@ -69,5 +72,17 @@ def export(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
+    if room_id is not None and include_all:
+        raise AppError(400, "INVALID_EXPORT_PARAMS", "Cannot specify room_id with include_all")
+
+    if room_id is not None:
+        room = (
+            db.query(Room)
+            .filter(Room.id == room_id, Room.org_id == admin.org_id)
+            .first()
+        )
+        if room is None:
+            raise AppError(404, "ROOM_NOT_FOUND", "Room not found")
+
     csv_body = generate_export(db, admin.org_id, admin.id, room_id, include_all)
     return Response(content=csv_body, media_type="text/csv")
