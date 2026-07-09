@@ -212,18 +212,18 @@ def cancel_booking(
         raise AppError(404, "BOOKING_NOT_FOUND", "Booking not found")
 
     with _get_booking_lock(booking.id):
-    if booking.status == "cancelled":
-        raise AppError(409, "ALREADY_CANCELLED", "Booking already cancelled")
+        if booking.status == "cancelled":
+            raise AppError(409, "ALREADY_CANCELLED", "Booking already cancelled")
 
-    now = datetime.utcnow()
-    notice = booking.start_time - now
-    notice_hours = int(notice.total_seconds() // 3600)
-    if notice_hours > 48:
-        refund_percent = 100
-    elif notice >= timedelta(hours=24):
-        refund_percent = 50
-    else:
-        refund_percent = 0
+        now = datetime.utcnow()
+        notice = booking.start_time - now
+        notice_hours = int(notice.total_seconds() // 3600)
+        if notice_hours > 48:
+            refund_percent = 100
+        elif notice >= timedelta(hours=24):
+            refund_percent = 50
+        else:
+            refund_percent = 0
 
     refund_amount_cents = calc_refund_cents(booking.price_cents, refund_percent)
 
