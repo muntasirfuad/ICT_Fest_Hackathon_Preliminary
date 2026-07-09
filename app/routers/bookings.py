@@ -119,6 +119,7 @@ def create_booking(
 
     stats.record_create(room.id, price_cents)
     cache.invalidate_availability(room.id, start.date().isoformat())
+    cache.invalidate_report(user.org_id)
     notifications.notify_created(booking)
 
     return serialize_booking(booking)
@@ -213,9 +214,10 @@ def cancel_booking(
     booking.status = "cancelled"
     db.commit()
 
-    stats.record_cancel(booking.room_id, booking.price_cents)
+    stats.record_create(room.id, price_cents)
+    cache.invalidate_availability(room.id, start.date().isoformat())
     cache.invalidate_report(user.org_id)
-    notifications.notify_cancelled(booking)
+    notifications.notify_created(booking)
 
     return {
         "id": booking.id,
