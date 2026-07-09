@@ -9,6 +9,7 @@ from ..auth import (
     get_token_payload,
     hash_password,
     revoke_access_token,
+    revoke_refresh_token,
     verify_password,
 )
 from ..database import get_db
@@ -54,18 +55,17 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/login")
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
-    org = db.query(Organization).filter(Organization.name == payload.org_name).first()
-    user = None
-    if org is not None:
-        user = (
-            db.query(User)
-            .filter(User.org_id == org.id, User.username == payload.username)
-            .first()
-        )
-    if user is None or not verify_password(payload.password, user.hashed_password):
-        raise AppError(401, "INVALID_CREDENTIALS", "Invalid username or password")
+@router.post("/refresh")
+def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
+    data = decode_token(payload.refresh_token)
+    if data.get("type") != "refresh":
+        raise AppError(401, "UNAUTHORIZED", "Wrong token type")
+    if data.get("jti") in revoke_refresh_token.__globals__["_revoked_refresh_tokens"]:
+        raise AppError(401, "UNAUTHORIZED", "Refresh token already used")
+    user = db.query(User).filter(User.id == int(data["sub"])).first()
+    if user is None:
+        raise AppError(401, "UNAUTHORIZED", "Unknown user")
+    revoke_refresh_token(data)
     return {
         "access_token": create_access_token(user),
         "refresh_token": create_refresh_token(user),
