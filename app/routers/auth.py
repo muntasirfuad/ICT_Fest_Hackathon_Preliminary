@@ -36,7 +36,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         .first()
     )
     if existing is not None:
-    raise AppError(409, "USERNAME_TAKEN", "Username already taken in this organization")
+        raise AppError(409, "USERNAME_TAKEN", "Username already taken in this organization")
 
     user = User(
         org_id=org.id,
