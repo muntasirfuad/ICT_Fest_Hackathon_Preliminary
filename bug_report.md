@@ -170,7 +170,7 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 
 **File:** `booking.py` (all of the following)
 
-### a. Grace period removed from cancellation cutoff
+### 15. Grace period removed from cancellation cutoff
 **Line 86**
 
 ```python
@@ -181,10 +181,10 @@ if start <= now - timedelta(seconds=300):
 if start <= now:
 ```
 
-### b. Dead/unused line removed
+### 16. Dead/unused line removed
 **Line 166** — deleted entirely.
 
-### c. Overlap check was letting back-to-back bookings collide
+### 17. Overlap check was letting back-to-back bookings collide
 **Line 50**
 
 Using `<=` on both ends meant a booking ending exactly when another started counted as a conflict (or let two bookings share a boundary incorrectly, depending on direction). Switched to strict inequality.
@@ -197,7 +197,7 @@ b.start_time <= end and start <= b.end_time
 b.start_time < end and start < b.end_time
 ```
 
-### d. Duration validation was missing a zero/negative check
+### 18. Duration validation was missing a zero/negative check
 **Lines 89-94**
 
 Nothing stopped a booking with an end time before (or equal to) the start time — it would just produce a negative or zero duration and slip through. Added an explicit check for that case.
@@ -215,7 +215,7 @@ if duration_hours < MIN_DURATION_HOURS:
     raise AppError(400, "INVALID_BOOKING_WINDOW", "duration out of range")
 ```
 
-### e. Pagination and sort order were both wrong
+### 19. Pagination and sort order were both wrong
 **Lines 140-143**
 
 Results were sorted newest-first when they should've been chronological, the page offset math was off by one page, and the page size was hardcoded to 10 instead of respecting `limit`.
@@ -238,7 +238,7 @@ items = (
 )
 ```
 
-### f. Refund policy had a boundary bug and a missing tier
+### 20. Refund policy had a boundary bug and a missing tier
 **Lines 201-210**
 
 Cancelling with *exactly* 48 hours notice fell through to the wrong tier because the check used `>` instead of `>=`. Also, there was no partial-refund tier for 24-48 hours notice — it jumped straight from 100% to 0%. Added the 50% tier.
@@ -255,7 +255,7 @@ else:
     refund_percent = 0
 ```
 
-### g. Booking creation and cancellation had no concurrency protection
+### 21. Booking creation and cancellation had no concurrency protection
 **Line 104** (creation) and **line 214** (cancellation)
 
 Nothing stopped two concurrent requests from double-booking the same room or double-cancelling the same booking. Added per-room and per-booking locks.
@@ -297,7 +297,7 @@ with _get_booking_lock(booking.id):
     ...
 ```
 
-### h. Refund math pulled into its own function
+### 22. Refund math pulled into its own function
 **Line 16** (new function) and **line 227**
 
 The refund calculation was inlined at the point of use. Pulled it out into a reusable `calc_refund_cents()` function so the rounding logic lives in one place.
