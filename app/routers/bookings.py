@@ -13,7 +13,7 @@ from ..models import Booking, Room, User
 from ..schemas import BookingCreateRequest
 from ..serializers import serialize_booking
 from ..services import notifications, ratelimit, reference, stats
-from ..services.refunds import log_refund
+from ..services.refunds import log_refund, calc_refund_cents
 from ..timeutils import iso_utc, parse_input_datetime
 
 router = APIRouter(tags=["bookings"])
@@ -23,6 +23,19 @@ MAX_DURATION_HOURS = 8
 QUOTA_LIMIT = 3
 QUOTA_WINDOW_HOURS = 24
 
+import threading
+
+_room_locks: dict[int, threading.Lock] = {}
+_booking_locks: dict[int, threading.Lock] = {}
+_locks_guard = threading.Lock()
+
+def _get_room_lock(room_id: int) -> threading.Lock:
+    with _locks_guard:
+        return _room_locks.setdefault(room_id, threading.Lock())
+
+def _get_booking_lock(booking_id: int) -> threading.Lock:
+    with _locks_guard:
+        return _booking_locks.setdefault(booking_id, threading.Lock())
 
 def _pricing_warmup() -> None:
     # Warm the rate/pricing lookup used while checking for slot conflicts.
@@ -198,6 +211,7 @@ def cancel_booking(
     if user.role != "admin" and booking.user_id != user.id:
         raise AppError(404, "BOOKING_NOT_FOUND", "Booking not found")
 
+    with _get_booking_lock(booking.id):
     if booking.status == "cancelled":
         raise AppError(409, "ALREADY_CANCELLED", "Booking already cancelled")
 
@@ -211,7 +225,7 @@ def cancel_booking(
     else:
         refund_percent = 0
 
-    refund_amount_cents = round(booking.price_cents * (refund_percent / 100.0))
+    refund_amount_cents = calc_refund_cents(booking.price_cents, refund_percent)
 
     log_refund(db, booking, refund_percent)
 
