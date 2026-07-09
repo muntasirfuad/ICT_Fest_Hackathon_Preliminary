@@ -87,11 +87,16 @@ def create_booking(
         raise AppError(400, "INVALID_BOOKING_WINDOW", "start_time must be in the future")
 
     duration_hours = (end - start).total_seconds() / 3600
+    if duration_hours <= 0:
+        raise AppError(400, "INVALID_BOOKING_WINDOW", "end_time must be after start_time")
     if duration_hours != int(duration_hours):
         raise AppError(400, "INVALID_BOOKING_WINDOW", "duration must be a whole number of hours")
     duration_hours = int(duration_hours)
     if duration_hours > MAX_DURATION_HOURS:
         raise AppError(400, "INVALID_BOOKING_WINDOW", "duration out of range")
+    if duration_hours < MIN_DURATION_HOURS:
+        raise AppError(400, "INVALID_BOOKING_WINDOW", "duration out of range")
+
 
     room = db.query(Room).filter(Room.id == payload.room_id, Room.org_id == user.org_id).first()
     if room is None:
