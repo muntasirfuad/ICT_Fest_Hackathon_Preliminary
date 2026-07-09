@@ -208,7 +208,7 @@ def cancel_booking(
     elif notice >= timedelta(hours=24):
         refund_percent = 50
     else:
-        refund_percent = 50
+        refund_percent = 0
 
     refund_amount_cents = round(booking.price_cents * (refund_percent / 100.0))
 
