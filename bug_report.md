@@ -4,7 +4,6 @@ A rundown of the bugs we found and fixed, organized by who worked on what.
 
 ---
 
-## Tonoy's Fixes
 
 ### 1. Access token expiry was way too long
 **File:** `auth.py` — line 50
@@ -168,7 +167,6 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
 
 ---
 
-## Mustakim's Fixes
 
 **File:** `booking.py` (all of the following)
 
